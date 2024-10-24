@@ -3,8 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export const createAdmin = async (req, res) => {
-  const { profileImage, name, username, password, role, permissions } =
-    req.body;
+  const { profileImage, name, username, password, role } = req.body;
   try {
     const existingAdmin = await Admin.findOne({ username });
 
@@ -18,7 +17,6 @@ export const createAdmin = async (req, res) => {
       username,
       password: await bcrypt.hash(password, 12),
       role,
-      permissions,
     });
     res.status(201).json({
       message: "Admin created successfully",
@@ -38,7 +36,7 @@ export const loginAdmin = async (req, res) => {
     }
     const isPasswordValid = await bcrypt.compare(password, admin.password);
     if (!isPasswordValid) {
-      return res.status(400).json({ message: "Invalid old password" });
+      return res.status(400).json({ message: "Invalid password" });
     }
 
     const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, {
@@ -71,12 +69,11 @@ export const getAdmin = async (req, res) => {
 
 export const updateAdmin = async (req, res) => {
   const { id } = req.params;
-  const { profileImage, name, username, password, role, permissions } =
-    req.body;
+  const { profileImage, name, username, password, role } = req.body;
   try {
     const admin = await Admin.findByIdAndUpdate(
       id,
-      { profileImage, name, username, password, role, permissions },
+      { profileImage, name, username, password, role },
       { new: true }
     );
     res.status(200).json({
