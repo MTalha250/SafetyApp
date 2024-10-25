@@ -2,19 +2,19 @@ import mongoose from "mongoose";
 
 const clientSchema = new mongoose.Schema(
   {
+    profileImage: {
+      type: String,
+      required: true,
+    },
     name: {
       type: String,
       required: true,
     },
-    contactPerson: {
+    username: {
       type: String,
       required: true,
     },
-    email: {
-      type: String,
-      required: true,
-    },
-    phone: {
+    password: {
       type: String,
       required: true,
     },

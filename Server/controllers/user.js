@@ -1,14 +1,19 @@
 import User from "../models/user.js";
+import Client from "../models/client.js";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
-  const { name, email, password, phone, address } = req.body;
+  const { name, email, password, phone, address, client } = req.body;
   try {
     const user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ message: "User already exists" });
+    }
+    const clientCheck = await Client.findById(client);
+    if (!clientCheck) {
+      return res.status(404).json({ message: "Client not found" });
     }
     const hashedPassword = await bcrypt.hash(password, 12);
     const newUser = await User.create({
@@ -17,13 +22,14 @@ export const register = async (req, res) => {
       password: hashedPassword,
       phone,
       address,
+      client,
     });
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
     res.status(201).json({
       message: "Account created successfully",
-      user: newUser,
+      user: { ...newUser._doc, client: clientCheck },
       token,
     });
   } catch (error) {
@@ -34,16 +40,24 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate("client tasks");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid password" });
     }
-    console.log(user);
+    if (!user.isVerified) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "User not verified. Please contact your client to verify your account.",
+        });
+    }
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
@@ -57,7 +71,20 @@ export const login = async (req, res) => {
 
 export const getUsers = async (req, res) => {
   try {
-    const users = await User.find().sort({ createdAt: -1 });
+    const users = await User.find()
+      .populate("client tasks")
+      .sort({ createdAt: -1 });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getUsersByClient = async (req, res) => {
+  try {
+    const users = await User.find({ client: req.userId })
+      .populate("client tasks")
+      .sort({ createdAt: -1 });
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -66,7 +93,7 @@ export const getUsers = async (req, res) => {
 
 export const getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await User.findById(req.userId).populate("client tasks");
     res.status(200).json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -84,13 +111,13 @@ export const deleteUser = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
-  const { name, email, phone, address, cart, wishlist } = req.body;
+  const { name, email, password, phone, address, client, tasks } = req.body;
   try {
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { name, email, phone, address, cart, wishlist },
+      { name, email, password, phone, address, client, tasks },
       { new: true }
-    );
+    ).populate("client tasks");
     res.status(200).json({
       message: "User updated successfully",
       user,
@@ -113,7 +140,7 @@ export const updatePassword = async (req, res) => {
       id,
       { password: hashedPassword },
       { new: true }
-    );
+    ).populate("client tasks");
     res.status(200).json({
       message: "Password updated successfully",
       user: updatedUser,
@@ -139,7 +166,7 @@ export const sendCode = async (req, res) => {
     });
     const mailOptions = {
       from: {
-        name: "GYMGear",
+        name: "Safety App",
         address: process.env.SMTP_EMAIL,
       },
       to: email,
@@ -161,7 +188,7 @@ export const resetPassword = async (req, res) => {
       { email },
       { password: hashedPassword },
       { new: true }
-    );
+    ).populate("client tasks");
     res.status(200).json({
       message: "Password reset successfully",
       user: updatedUser,

@@ -23,7 +23,11 @@ export const createAssessment = async (req, res) => {
 
 export const getAssessments = async (req, res) => {
   try {
-    const assessments = await Assessment.find().sort({ createdAt: -1 });
+    const assessments = await Assessment.find()
+      .populate("client assignedTo template")
+      .sort({
+        createdAt: -1,
+      });
     res.status(200).json(assessments);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -33,7 +37,9 @@ export const getAssessments = async (req, res) => {
 export const getAssessmentById = async (req, res) => {
   const { id } = req.params;
   try {
-    const assessment = await Assessment.findById(id);
+    const assessment = await Assessment.findById(id).populate(
+      "client assignedTo template"
+    );
     if (!assessment) {
       return res.status(404).json({ message: "Assessment not found" });
     }
@@ -45,9 +51,11 @@ export const getAssessmentById = async (req, res) => {
 
 export const getAssessmentsByClient = async (req, res) => {
   try {
-    const assessments = await Assessment.find({ client: req.userId }).sort({
-      createdAt: -1,
-    });
+    const assessments = await Assessment.find({ client: req.userId })
+      .populate("client assignedTo template")
+      .sort({
+        createdAt: -1,
+      });
     res.status(200).json(assessments);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -56,9 +64,11 @@ export const getAssessmentsByClient = async (req, res) => {
 
 export const getAssessmentsByUser = async (req, res) => {
   try {
-    const assessments = await Assessment.find({ assignedTo: req.userId }).sort({
-      createdAt: -1,
-    });
+    const assessments = await Assessment.find({ assignedTo: req.userId })
+      .populate("client assignedTo template")
+      .sort({
+        createdAt: -1,
+      });
     res.status(200).json(assessments);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -73,7 +83,7 @@ export const updateAssessment = async (req, res) => {
       id,
       { client, template, data, status, flaggedItems, media },
       { new: true }
-    );
+    ).populate("client assignedTo template");
     res.status(200).json({
       message: "Assessment updated successfully",
       assessment,
