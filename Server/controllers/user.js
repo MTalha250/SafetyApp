@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
-  const { name, email, password, phone, address, client } = req.body;
+  const { name, email, password, phone, client } = req.body;
   try {
     const user = await User.findOne({ email });
     if (user) {
@@ -21,14 +21,13 @@ export const register = async (req, res) => {
       email,
       password: hashedPassword,
       phone,
-      address,
       client,
     });
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
     res.status(201).json({
-      message: "Account created successfully",
+      message: "Account created successfully. Please wait for company approval",
       user: { ...newUser._doc, client: clientCheck },
       token,
     });
@@ -50,12 +49,10 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
     }
     if (!user.isVerified) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "User not verified. Please contact your client to verify your account.",
-        });
+      return res.status(400).json({
+        message:
+          "You are not verified. Please contact your company to verify your account.",
+      });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -111,11 +108,11 @@ export const deleteUser = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
-  const { name, email, password, phone, address, client, tasks } = req.body;
+  const { name, email, password, phone, client, tasks } = req.body;
   try {
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { name, email, password, phone, address, client, tasks },
+      { name, email, password, phone, client, tasks },
       { new: true }
     ).populate("client tasks");
     res.status(200).json({
@@ -195,6 +192,20 @@ export const resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const verifyUser = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    await User.findByIdAndUpdate(id, { isVerified: true });
+    res.status(200).json({ message: "User verified successfully" });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

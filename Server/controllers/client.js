@@ -20,7 +20,7 @@ export const register = async (req, res) => {
       expiresIn: "7d",
     });
     res.status(201).json({
-      message: "Account created successfully",
+      message: "Account created successfully. Please wait for admin approval",
       client: newClient,
       token,
     });
@@ -41,6 +41,14 @@ export const login = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(400).json({ message: "Invalid password" });
     }
+
+    if (!client.isVerified) {
+      return res.status(400).json({
+        message:
+          "You are not verified. Please contact admin to verify your account.",
+      });
+    }
+
     const token = jwt.sign({ id: client._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
@@ -74,11 +82,10 @@ export const getClient = async (req, res) => {
 };
 
 export const updateClient = async (req, res) => {
-  const { id } = req.params;
   const { profileImage, name, username, password } = req.body;
   try {
     const client = await Client.findByIdAndUpdate(
-      id,
+      req.userId,
       { profileImage, name, username, password },
       { new: true }
     );
@@ -93,6 +100,20 @@ export const deleteClient = async (req, res) => {
   try {
     await Client.findByIdAndDelete(id);
     res.status(200).json({ message: "Client deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const verifyClient = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const client = await Client.findById(id);
+    if (!client) {
+      return res.status(400).json({ message: "Client does not exist" });
+    }
+    await Client.findByIdAndUpdate(id, { isVerified: true });
+    res.status(200).json({ message: "Client verified successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import adminRoutes from "./routes/admin.js";
 import userRoutes from "./routes/user.js";
+import clientRoutes from "./routes/client.js";
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/client", clientRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

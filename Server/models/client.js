@@ -30,6 +30,10 @@ const clientSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
