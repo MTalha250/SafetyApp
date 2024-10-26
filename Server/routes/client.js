@@ -7,6 +7,7 @@ import {
   updateClient,
   deleteClient,
   verifyClient,
+  getClientNames,
 } from "../controllers/client.js";
 
 import verifyToken from "../middlewares/verifyToken.js";
@@ -22,5 +23,6 @@ router.get("/client", verifyToken, VerifyClient, getClient);
 router.put("/update", verifyToken, VerifyClient, updateClient);
 router.delete("/delete/:id", verifyToken, verifyAdmin, deleteClient);
 router.put("/verify/:id", verifyToken, verifyAdmin, verifyClient);
+router.get("/names", getClientNames);
 
 export default router;

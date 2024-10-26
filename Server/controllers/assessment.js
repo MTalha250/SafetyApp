@@ -1,11 +1,22 @@
 import Assessment from "../models/assessment.js";
+import Template from "../models/template.js";
 
-export const createAssessment = async (req, res) => {
-  const { client, template, data, status, flaggedItems, media } = req.body;
+export const validateAndCreateAssessment = async (req, res) => {
+  const { client, assignedTo, template, data, status, flaggedItems, media } =
+    req.body;
   try {
+    const existingTemplate = await Template.findById(template);
+    if (!existingTemplate) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+    existingTemplate.fields.forEach((field) => {
+      if (field.required && !data[field.label]) {
+        return res.status(400).json({ message: `${field.label} is required` });
+      }
+    });
     const assessment = await Assessment.create({
       client,
-      assignedTo: req.userId,
+      assignedTo,
       template,
       data,
       status,
@@ -20,7 +31,6 @@ export const createAssessment = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 export const getAssessments = async (req, res) => {
   try {
     const assessments = await Assessment.find()
